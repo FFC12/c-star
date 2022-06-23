@@ -1,0 +1,298 @@
+//Auto importing with involved. this means all standard libraries which needed by this, will be imported by automatically
+include involved {
+    "ML",
+    "X", //sin -> X.sin
+    "Y", //sin -> Y.sin
+}
+
+// also particularly we can import a package or even only a function from it as well
+include {
+    "std:math"
+    "std:math:cos"
+}
+
+// PI is acting like a constant but just a symbol
+include "std:math:PI" as PI
+//is equal to
+include "std:math" as math
+const i32 PI = math.PI;
+
+// Linkage and storage syntax in C*
+//those are identical since if there is no return type operator exist on the function, compiler treats like
+//its type is void
+import callMe(i8,bool) :: void;
+import callMe(i8 x,bool y);
+import {
+    callMe(int x8,bool y);
+    dontCallMe(i32 x,i64 y);
+}
+import glClearColor(float r,float g,float b,float a) :: void from "opengl32.lib";
+import from "myLibrary.lib" {
+    printf(char*) :: void;
+    callMe() :: void;
+}
+
+//float is automatically replaced by float64 or f32 which depends on the system architecture flag
+export area<Circle>(float x,float y) :: f32;
+export sin(float64 x) :: f64 from "std:math";
+export from "std:math" {
+    abs(i32 x) :: i32;
+    fabs(f32 x) :: f32;
+}
+
+export say_my_name() :: void {
+    io.print("C*");
+}
+
+static i32 VALUE = 10000;
+
+/*
+
+
+asd;asdka\
+sdfklsdf
+lsg
+fklgdlfgdf
+
+
+sdfl;ksldf
+*/
+
+
+main() :: i32 { 
+    i32 x = 30;
+    i32* p = ref x;
+    i32* p2 = &x;
+    x = *p;
+    x = deref p;
+
+    u32 a = 1233;
+    i32 p = a; // this will be a stupid assignment here
+    i32 l = unsafe_cast<i32>(a); // it tries to understand what to do and helps implicitly if it can (2's complement)
+    f32 f = 12.3453;
+    i32 r = f; //implicitly casting
+    Shape^ shape = Triangle();
+
+    // error
+    Triangle^ triangle = cast<Triangle^>(shape);
+
+    //move it (transfer ownership) to the left side.
+    Shape^ anotherShape .= shape;
+    //or maybe
+    Shape^ anotherShape2 = move anotherShape;
+
+    const Shape^ ptr = Triangle(); // the address is not constant and the value it holds cannot be changed.
+    constptr Shape^ ptr = Triangle(); // the address is constant but the value it holds can be changed.
+    readonly Shape^ ptr = Triangle(); // the address and the value are constant and this is readonly.
+
+    //for stack-kind variables.
+    const Shape shape;
+    //constptr Shape shape; this is wrong since Shape is not a pointer-type variable
+    //readonly Shape shape; this is wrong since Shape is not a pointer-type variable
+
+    if(x == 10) {
+
+    } elif (x > 10) {
+
+    } else {
+
+    }
+
+
+    loop(true) {
+
+    }
+
+
+    // new syntax for multi-dimensional arrays.
+    i32 arr[2:2] = {
+        {0,1},
+        {2,3}
+    };
+
+    i32 p = arr[0:1];
+
+    i32 arr1[4] = {0,1,2,3};
+    loop(v in arr1) {
+        print(v)
+    }
+
+    //by index
+    loop(i,v in arr1){
+        print(i,v)
+    }
+
+
+    i32 k = 1;
+    switch(k) {
+        0: {
+
+        },
+        1: {
+
+        },
+        2: {
+
+        },
+        3: {
+
+        },
+        _: {
+
+        }
+    }
+
+    
+    // optional primitives. built-in version of std::optional<T> or Option<x>
+    [i32*] option = nil;
+    option(x) {
+        0: {
+
+        },
+        _: {
+            // when it's nil
+        }
+    }
+
+    ret 0;
+}
+
+
+
+//This is the way of using features of Metaprogramming..
+attribute Area<T> {
+    area($0,$1) -> T match {
+        "Triangle": $0 * $1 / 2,
+        "Square": $0 * $1,
+        _: cterror("no this is not valid type")
+    }
+}
+
+attribute Area<Circle> {
+    area($0) -> math.PI * $0 * $0;
+}
+
+//meta types for reflectivity
+attribute IsRef<T> {
+    is_ref($0) -> std.meta_ref($0);
+}
+
+//Attributing functions from Area (this is like an interface but not exactly interface...)
+struct Shape<T> from Area<T> {
+    f32 x;
+    f32 y;
+    f32 _z; // private
+
+    constructible_function() construct {
+
+    }
+
+    destructible_function() destruct {
+
+    }
+
+    //if there is no parameters, we can write the function in three different ways
+    area() :: void {}
+    area :: void {}
+    area() {}
+
+    area<Square>(int x,int y) :: f32;
+    area<Triangle>(f32 x,f32 y) :: f32;
+    area<Circle>(f32 r) :: f32;
+
+    cast_is_not_possible(x bool,bool y) :: void {
+        // it's legal and not breaking PTD (primitive type domination) rule
+        i32 a = x; // but still illegal implicitly casting since 'x bool' semantically dictate that you can't cast this parameter in this whole scope
+                     // ? maybe we can use this for preventing to cast that would be occured by the compiler
+        i32 b = y; // but this is legal since there is no restriction semantically since 'bool y'.
+    }
+}
+
+
+struct Triangle(Shape) {
+
+}
+
+enum Colors {
+	RED(i32),
+	GREEN(const char*),
+	BLUE(i32)
+}
+
+//enum can derive from a prototype
+//that means Colors will be acting like a enum but it will be
+//also a struct which has only member variables of the base prototype it derived from.1
+enum Colors(Triangle) {
+
+}
+
+
+example(i32& by_ref) :: void {
+
+}
+
+example1(constref i32& by_ref) :: void {
+
+}
+
+// This means passed by address which holds by an unique pointer (it had moved probably)
+// and its ownership had been transferred and it's not able to be shared with
+// another pointer since it's an unique ptr but you can move it by move or assignment-move
+// but in some cases, you don't wanna let to be passed a moveable unique_ptr
+// to the function itself as a param. In this cases you can use nomove qualifier
+// so by this qualifier compiler will be complaining about that as this passed pointer as moveable unique ptr.
+example2(nomove constptr i32^ ptr) :: void {
+    // you can't do this. it's marked as nomove
+    i32^ movedHere = move ptr;
+}
+
+
+//
+// also if the unique_ptr passed as constptr
+// it means it cannot be moved during entire the function scope
+// but this is semantically a lit bit awkward since when
+// you moved your unique ptr and its lifetime
+// to be limited function's scope. but in some rare cases
+// it'll be good to have.
+example2(constptr i32^ ptr) :: any {
+    //this is not possible because ^ pointers are can't be shared
+    //i32^ movedHere = ptr;
+
+    //you can move like
+    i32^ movedHere = move ptr;
+    //or
+    i32^ movedHere2 .= ptr;
+    // this is ':=' usually using as type inf in the other languages but we don't have a feature like type inf
+
+}
+
+example3(i32^ ptr) :: any {
+}
+
+
+//This means pass by address that shareable pointer but it can't be changed
+//and it can have many ownerships which is able to be shared with
+//another pointer and it can be moved but not allowed by constptr
+example4(constptr i32* ptr) :: any {
+    i32* sharedHere = ptr;
+
+    //not possible
+    //sharedHere = Triangle();
+}
+
+//This means pass by address that shareable pointer but it can't be changed
+//and it can have many ownerships which is able to be shared with
+//another pointer and it can be moved since *
+//when shareable pointer moved, previous pointer will be nil.. and counter does not increase
+example5(i32* ptr) :: any {
+    i32* sharedHere = ptr;
+    sharedHere = Triangle();
+}
+
+
+example6(readonly char* str) async :: bool {
+    bool success = await a_function_must_be_awaited();
+    ret success;//success ? str : "not succeded!";
+}
+
+
